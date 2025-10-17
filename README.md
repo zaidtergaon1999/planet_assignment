@@ -135,6 +135,26 @@ Integration with third-party APIs (Mail.tm)
 
 This approach ensures stability, reusability, and scalability for real-world enterprise-grade web automation.
 
+## 🚀 Future Scope
+
+The current implementation focuses on automating a single end-to-end shopper flow.  
+However, this framework has strong potential for **scaling and enterprise-level enhancements**.  
+Future improvements can include:
+
+- 🌍 **Data-Driven Testing for Multiple Countries**  
+  Introduce CSV/JSON/Excel data sets to dynamically test passport flows, OTP verification, and profile completion for **different countries**, ensuring full localization coverage (currency formats, date formats, field labels, etc.).
+
+- 🧩 **CI/CD Integration**  
+  Integrate the test suite with **Jenkins, GitHub Actions, or Azure DevOps** pipelines for continuous execution on every code push or deployment.
+
+- 📊 **Enhanced Reporting & Dashboards**  
+  Incorporate **Allure Reports** or **HTML Reporter Extensions** to generate visual analytics on pass/fail trends, execution times, and flaky tests.
+
+- 🧾 **Backend API Validation Layer**  
+  Add API-level assertions to validate the correctness of backend responses after each UI action — ensuring data integrity across layers.
+
+- 🧪 **Integration with Test Management Tools**  
+  Link test execution results to tools like **TestRail** or **Xray** for better traceability of requirements and test coverage.
 
 
 

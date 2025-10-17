@@ -11,7 +11,7 @@ The framework simulates a realistic shopper journey with dynamic data generation
 
 The entire recording of this UI automation is available in the following video folder:
 
-### 🎬 [Watch Video](src/video/demo.mp4)
+### 🎬 [Watch Video](src/video/Planet_UI_Automation.mp4)
 
 This video showcases the complete automated journey — from email submission and OTP verification to passport entry and profile completion — providing a visual confirmation of the framework’s end-to-end execution.
 

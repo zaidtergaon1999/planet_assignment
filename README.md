@@ -7,7 +7,6 @@ The main objective of this assignment is to automate the **complete user flow** 
 
 The framework simulates a realistic shopper journey with dynamic data generation, OTP polling from [Mail.tm](https://mail.tm), and robust defensive selectors designed to handle real-world UI variations.
 
----
 
 ## 🧩 Project Objectives
 
@@ -19,41 +18,7 @@ This assignment was designed to demonstrate:
 - ✅ Robust handling of asynchronous events, animations, and flaky selectors  
 - ✅ Clean, readable, and maintainable codebase structure  
 
----
 
-## 🧱 Project Structure
-
-Below is the structure of the project (as visible in your VS Code workspace):
-
-PLANET_ASSIGNMENT/
-├── node_modules/
-├── src/
-│ ├── helpers/
-│ │ └── browserFixture.js # Sets up Playwright browser with fake camera permissions
-│ ├── pages/ # Page Object Model (POM) classes for each screen
-│ │ ├── CompleteDetailsPage.js
-│ │ ├── ConfirmPassportPage.js
-│ │ ├── OtpPage.js
-│ │ ├── PassportDetailsPage.js
-│ │ ├── PassportEnterManuallyPage.js
-│ │ ├── SubmitEmailPage.js
-│ │ ├── TosPage.js
-│ │ └── VerifyProfileSavedPage.js
-│ ├── services/
-│ │ └── mailTmService.js # Handles Mail.tm account + token creation
-│ └── utils/
-│ └── debug.js # Helper utilities (e.g. screenshots, debug logging)
-│
-├── tests/
-│ └── shopperPortal.spec.js # Main Playwright test that runs full Shopper Portal flow
-│
-├── package.json # Node.js project config & dependencies
-├── package-lock.json
-├── playwright.config.js # Playwright test configuration (timeouts, browsers, reporters)
-
-
-
----
 
 ## ⚙️ Tools & Technologies Used
 
@@ -75,13 +40,13 @@ PLANET_ASSIGNMENT/
 If Node.js is not installed, download it from the official site:  
 👉 [https://nodejs.org/](https://nodejs.org/)
 
-Verify installation
+Verify installation:
 node -v
 npm -v
 
 
 
-2️⃣ Install Playwright and Project Dependencies
+###  2️⃣ Install Playwright and Project Dependencies
 
 Clone or download the repository, then open it in VS Code.
 
@@ -95,50 +60,50 @@ npx playwright install
 
 
 
-▶️ Running the Tests
+### ▶️ Running the Tests
 
-Run all tests using:
+# Run all tests using:
 
 npx playwright test
 
 
-To run a specific test (e.g., Shopper Portal):
+# To run a specific test (e.g., Shopper Portal):
 
 npx playwright test tests/shopperPortal.spec.js
 
 
-To open the Playwright HTML report after execution:
+# To open the Playwright HTML report after execution:
 
 npx playwright show-report
 
 
 
 
-🧠 Test Flow (Step-by-Step)
+## Test Flow (Step-by-Step) 🧠 
 
-Create Mail.tm account → Generates disposable email & token
+- Create Mail.tm account → Generates disposable email & token
 
-Submit Email → Opens Shopper Portal & enters email
+- Submit Email → Opens Shopper Portal & enters email
 
-Wait for OTP → Polls Mail.tm inbox and auto-fills OTP code
+- Wait for OTP → Polls Mail.tm inbox and auto-fills OTP code
 
-Accept Terms of Service (TOS) → Checks checkbox and continues
+- Accept Terms of Service (TOS) → Checks checkbox and continues
 
-Scan Passport → Enter Manually → Chooses manual passport entry option
+- Scan Passport → Enter Manually → Chooses manual passport entry option
 
-Enter Passport Details → Random passport number, expiry, and country
+- Enter Passport Details → Random passport number, expiry, and country
 
-Confirm Passport Details → Clicks “Confirm and Continue”
+- Confirm Passport Details → Clicks “Confirm and Continue”
 
-Fill Complete Details → Name, nationality, residence, address, phone
+- Fill Complete Details → Name, nationality, residence, address, phone
 
-Verify Profile Saved → Waits for “Profile details saved” confirmation
-
-
+- Verify Profile Saved → Waits for “Profile details saved” confirmation
 
 
 
-📷 Debug & Artifacts
+
+
+## 📷Debug & Artifacts
 
 The framework captures screenshots (on failure or via saveDebug() methods).
 
@@ -149,7 +114,7 @@ You can inspect them to troubleshoot element visibility or timing issues.
 
 
 
-🏁 Conclusion
+## 🏁 Conclusion
 
 This assignment demonstrates a production-grade Playwright automation framework developed for the Planet Shopper Portal.
 It shows deep understanding of:
@@ -168,7 +133,7 @@ This approach ensures stability, reusability, and scalability for real-world ent
 
 
 
-👤 Author
+## 👤 Author
 
 Zaid Tergaon
-Automation Engineer | Playwright | JavaScript | Python | QA & Test Framework Design
+Software Quality Engineer | Playwright | JavaScript | Python | QA & Test Framework Design

@@ -7,6 +7,13 @@ The main objective of this assignment is to automate the **complete user flow** 
 
 The framework simulates a realistic shopper journey with dynamic data generation, OTP polling from [Mail.tm](https://mail.tm), and robust defensive selectors designed to handle real-world UI variations.
 
+## 🎥 Demo Recording
+
+The entire recording of this UI automation is available in the following video folder:
+
+### planet_assignment/src/video
+
+This video showcases the complete automated journey — from email submission and OTP verification to passport entry and profile completion — providing a visual confirmation of the framework’s end-to-end execution.
 
 ## 🧩 Project Objectives
 
@@ -31,9 +38,9 @@ This assignment was designed to demonstrate:
 | **VS Code**            | Development environment                               |
 | **POM Design Pattern** | Code organization for scalability and maintainability |
 
----
 
-## 💻 Setup Instructions
+
+# 💻 Setup Instructions
 
 ### 1️⃣ Install Node.js
 
@@ -52,27 +59,26 @@ Clone or download the repository, then open it in VS Code.
 
 Run the following commands in the terminal:
 
-# Install project dependencies
-npm install
+### Install project dependencies
+  npm install
 
-# Install Playwright browsers (Chromium, Firefox, WebKit)
-npx playwright install
-
+### Install Playwright browsers (Chromium, Firefox, WebKit)
+  npx playwright install
 
 
 ### ▶️ Running the Tests
 
-# Run all tests using:
+### Run all tests using:
 
-npx playwright test
-
-
-# To run a specific test (e.g., Shopper Portal):
-
-npx playwright test tests/shopperPortal.spec.js
+ npx playwright test
 
 
-# To open the Playwright HTML report after execution:
+### To run a specific test (e.g., Shopper Portal):
+
+ npx playwright test tests/shopperPortal.spec.js
+
+
+### To open the Playwright HTML report after execution:
 
 npx playwright show-report
 
@@ -133,7 +139,7 @@ This approach ensures stability, reusability, and scalability for real-world ent
 
 
 
-## 👤 Author
+# 👤 Author
 
 Zaid Tergaon
 Software Quality Engineer | Playwright | JavaScript | Python | QA & Test Framework Design

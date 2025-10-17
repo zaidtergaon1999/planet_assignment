@@ -101,7 +101,7 @@ npx playwright show-report
 
 - Confirm Passport Details → Clicks “Confirm and Continue”
 
-- Fill Complete Details → Name, nationality, residence, address, phone
+- Fill Complete Details → Name, nationality, DOB(should be 16+ years), address, phone
 
 - Verify Profile Saved → Waits for “Profile details saved” confirmation
 

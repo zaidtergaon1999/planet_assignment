@@ -141,5 +141,5 @@ This approach ensures stability, reusability, and scalability for real-world ent
 
 # 👤 Author
 
-Zaid Tergaon
+Zaid Tergaon | 
 Software Quality Engineer | Playwright | JavaScript | Python | QA & Test Framework Design

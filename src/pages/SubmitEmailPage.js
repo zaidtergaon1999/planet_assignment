@@ -14,7 +14,7 @@ export default class SubmitEmailPage {
    * - `emailSelector` is a flexible selector matching common email input patterns.
    * - `continueRole` is a role-based locator for buttons labelled "Continue" or "Next".
    */
-  constructor(page, portalUrl) {
+  constructor(page, portalUrl = process.env.PORTAL_URL) {
     this.page = page;
     this.portalUrl = portalUrl;
     // primary email selectors - kept flexible to match different markup variants
@@ -52,8 +52,9 @@ export default class SubmitEmailPage {
    */
   async openAndSubmitEmail(address, { timeout = 50000 } = {}) {
     // 1) Navigate to the Shopper Portal and wait for network to settle
-    await this.page.goto(this.portalUrl, { waitUntil: 'networkidle' });
-    await this.waitNetworkIdle();
+    const targetUrl = this.portalUrl || '/'; // use baseURL from playwright config when portalUrl not provided
+    if (!this.portalUrl) console.warn('[SubmitEmailPage] portalUrl not provided — falling back to baseURL /');
+    await this.page.goto(targetUrl, { waitUntil: 'networkidle' });    await this.waitNetworkIdle();
 
     // 2) Ensure the email input is visible before interacting
     await this.page.locator(this.emailSelector).waitFor({ state: 'visible', timeout });

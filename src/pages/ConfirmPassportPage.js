@@ -1,4 +1,4 @@
-export class ConfirmPassportPage {
+export default class ConfirmPassportPage {
   // Store the Playwright page object so methods can interact with the browser.
   constructor(page) {
     this.page = page;
@@ -14,22 +14,6 @@ export class ConfirmPassportPage {
   async ConfirmDetails() {
     const page = this.page;
     try {
-      // Wait until we are on the confirm-passport step.
-      // Use Promise.race to proceed if either:
-      //  - the URL matches /ConfirmPassport/i OR
-      //  - a visible element containing "Confirm passport details" appears.
-      // Both waits are best-effort (catch errors) so the method doesn't hard crash on timing differences.
-      await Promise.race([
-        page.waitForURL(/ConfirmPassport/i, { timeout: 20000 }).catch(() => {}),
-        page.locator('text=Confirm passport details')
-            .first()
-            .waitFor({ state: 'visible', timeout: 20000 })
-            .catch(() => {})
-      ]);
-      // Wait for network to quiet down (best-effort).
-      await page.waitForLoadState('networkidle').catch(() => {});
-      // Short sleep to allow micro-animations / layout shifts to settle.
-      await this._sleep(300);
 
       // Track if we have successfully clicked the confirm button through any strategy.
       let clicked = false;

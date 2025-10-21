@@ -6,7 +6,7 @@
 import fetch from 'node-fetch'; // For Node <18 environments that don't have global `fetch`. Remove if running on Node 18+.
 
 // Main exported function: creates a Mail.tm account and returns { address, password, token }.
-export async function createMailTmAccount() {
+export default async function createMailTmAccount() {
 
   // ---------- Step 1: Fetch available mail.tm domains ----------
   // Mail.tm provides domains that can be used for disposable email accounts.

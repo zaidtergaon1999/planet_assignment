@@ -473,7 +473,7 @@ export default class CompleteDetailsPage {
         } catch (e) {
           log('open attempt failed:', e.message);
         }
-        await pageLocal.waitForTimeout(150);
+        await pageLocal.waitForTimeout(5000);
       }
       if (!opened) throw new Error('Failed to open country dropdown');
 

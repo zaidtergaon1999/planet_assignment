@@ -1,192 +1,332 @@
-// src/pages/PassportScanPage.js
-// Page Object Model (POM) for handling the "Scan passport" → "Enter passport manually" flow.
-// This file contains a compact, defensive set of helpers to:
-//  - click the Scan Passport control (which may open a camera/modal/iframe)
-//  - reliably locate and click the "Enter passport manually" action that follows
-// The code is defensive because the scan UI may appear as an overlay, iframe, or new page.
+// src/pages/PassportScanner.js
+// Thin wrapper class exposing two methods:
+//   - scanPassport(pageOptions?)         => tries to open the scan UI
+//   - enterPassportManually(pageOptions?) => clicks the "Enter passport manually" option
+//
+// Based almost verbatim on the implementation in tests/shopperPortal.spec.js
+import { saveDebug } from '../utils/debug.js'; // keep your existing debug hook
 
-import { saveDebug } from '../utils/debug.js'; // adjust if your debug util is default-export
-
-export default class PassportScanPage {
+export default class PassportScanner {
   /**
-   * Constructor
-   * @param {import('playwright').Page} page - Playwright page instance used to interact with the app.
-   *
-   * Initializes:
-   *  - stable selectors used to locate the scan button and label
-   *  - a list of candidate selectors / text patterns that represent the "Enter passport manually" action
+   * @param {import('playwright').Page} page
    */
   constructor(page) {
     this.page = page;
-    // Selector that targets the primary "Scan passport" control (data-testid used for stability)
-    this.scanBtnSel = '[data-testid="PassportDetailsScanPassport"]';
-    // Optional label element associated with scan control (some UIs place the click target on the label)
-    this.scanLabelSel = '[data-testid="PassportDetailsScanPassportLabel"]';
-    // Fallback candidate selectors that might represent the "Enter passport manually" link or button.
-    // We try them in order when searching for the manual-enter action.
-    this.enterManualCandidates = [
-      '[data-testid="EnterPassportManuallyButton"]',
-      '[data-testid="EnterPassportManually"]',
-      '[data-testid*="EnterPassport"]',
-      'text=/Enter passport manually/i'
-    ];
   }
 
-  // sleep
-  // Small convenience wrapper around setTimeout to introduce short pauses where needed.
+  // small sleep util
   sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-  // clickScanPassport
-  // Purpose:
-  //  - Ensure we are on the PassportDetails area (best-effort)
-  //  - Wait for the Scan button to be visible
-  //  - Click the Scan control using a sequence of robust strategies:
-  //      1) direct force click on the control
-  //      2) click the label if the direct click didn't produce the expected UI change
-  //      3) as a last resort, execute a DOM click via page.evaluate
-  //  - After clicking, wait for either the ScanPassport URL or the manual-entry UI to appear.
-  //
-  // Notes:
-  //  - Many pages render camera/scanner UI in modals, overlays, or separate frames. This method is defensive
-  //    and uses multiple fallbacks to handle those variations.
-  async clickScanPassport({ timeout = 30000 } = {}) {
+  // dismiss some common overlays
+  async dismissOverlays() {
     const page = this.page;
-
-    // Best-effort: wait for page to be the passport details page or for network to settle
-    await page.waitForURL(/\/PassportDetails/i, { timeout }).catch(() => {});
-    await page.waitForLoadState('networkidle').catch(() => {});
-
-    // Wait for the primary scan button to be visible
-    const btn = page.locator(this.scanBtnSel).first();
-    await btn.waitFor({ state: 'visible', timeout });
-
-    // 1) Preferred approach: scroll into view and click forcefully
-    await btn.scrollIntoViewIfNeeded().catch(()=>{});
-    await btn.click({ force: true }).catch(()=>{});
-
-    // 2) If clicking didn't surface manual-entry UI, try clicking the label near the control (some UIs)
-    const manualSel = this.enterManualCandidates[0];
-    const manualExists = await page.locator(manualSel).first().count() > 0;
-    if (!manualExists) {
-      const label = page.locator(this.scanLabelSel).first();
-      if (await label.count() > 0 && await label.isVisible()) {
-        await label.scrollIntoViewIfNeeded().catch(()=>{});
-        await label.click({ force: true }).catch(()=>{});
-      } else {
-        // 3) Final fallback: programmatic DOM click in case the control is not clickable via Playwright locators
-        await page.evaluate(sel => { const e = document.querySelector(sel); if (e) e.click(); }, this.scanBtnSel).catch(()=>{});
+    try {
+      await page.keyboard.press('Escape').catch(()=>{});
+      const closeSelectors = [
+        'button[aria-label="Close"]', 'button[title="Close"]', '.modal-close',
+        '.dialog-close', '.close', '.pw-modal-close', '.overlay__close', '.v-overlay__close'
+      ];
+      for (const sel of closeSelectors) {
+        const c = page.locator(sel).first();
+        if ((await c.count()) > 0 && await c.isVisible()) {
+          await c.click({ force: true }).catch(()=>{});
+        }
       }
-    }
-
-    // Wait for either:
-    //  - navigation to /ScanPassport (if app navigates), OR
-    //  - the manual-entry UI element(s) to appear (overlay/alternative)
-    await Promise.race([
-      page.waitForURL(/\/ScanPassport/i, { timeout }).catch(() => {}),
-      page.waitForSelector(this.enterManualCandidates.join(','), { timeout }).catch(() => {})
-    ]);
-
-    // Allow background requests / rendering to settle
-    await page.waitForLoadState('networkidle').catch(() => {});
-    return this.page;
+    } catch (e) { /* ignore */ }
   }
 
-  // clickEnterPassportManually
-  // Purpose:
-  //  - Robustly locate and click the "Enter passport manually" control which might live:
-  //      - in the main page DOM
-  //      - inside one of the page's frames (camera/modal often hosted in iframe)
-  //      - in a newly opened popup/tab (some implementations open a new window)
-  //  - The method polls the main page, its frames, and any newly opened pages for the candidate selectors.
-  //  - If successful, it switches `this.page` to the newly opened page if needed and returns that page.
-  //
-  // Arguments:
-  //  - pollInterval: how frequently to retry (ms)
-  //  - pollTimeout: maximum time to keep trying before failing (ms)
-  //
-  // Behavior on failure:
-  //  - captures debug artifacts via saveDebug (if available) and throws an Error.
-  async clickEnterPassportManually({ pollInterval = 1000, pollTimeout = 45000 } = {}) {
+  // robust click helper used in both methods
+  async robustClickLocator(loc) {
     const page = this.page;
-    const ctx = page.context();
-    const deadline = Date.now() + pollTimeout;
+    try {
+      await loc.scrollIntoViewIfNeeded().catch(()=>{});
+      await loc.click({ force: true, trial: false }).catch(()=>{});
+      await page.waitForTimeout(300);
+      return true;
+    } catch (e) {
+      try {
+        const box = await loc.boundingBox();
+        if (box) {
+          await page.mouse.click(box.x + box.width/2, box.y + box.height/2, { force: true });
+          await page.waitForTimeout(300);
+          return true;
+        }
+      } catch (e2) { /* ignore */ }
+    }
+    return false;
+  }
 
-    // Track newly opened pages so we can search them if the UI opens a new popup
-    const newPages = [];
-    const onNew = (p) => newPages.push(p);
-    ctx.on('page', onNew);
+  // helper to click "Enter passport manually" inside a frame via page.evaluate
+  async clickManualInFrame(frame) {
+    try {
+      const clicked = await frame.evaluate(() => {
+        const needle = /enter passport manually/i;
+        const candidates = Array.from(document.querySelectorAll('a, button, span, div, p, label'));
+        for (const el of candidates) {
+          const txt = (el.textContent || '').trim();
+          if (txt && needle.test(txt)) {
+            try { el.click(); return true; } catch (e) {
+              try {
+                const rect = el.getBoundingClientRect();
+                el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+                el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+                el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+                el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                return true;
+              } catch (e2) {}
+            }
+          }
+        }
+        return false;
+      }).catch(()=>false);
+      return !!clicked;
+    } catch (e) {
+      return false;
+    }
+  }
 
-    // tryClickInPage: helper that tries each candidate selector within a given page/frame
-    const tryClickInPage = async (p) => {
-      for (const sel of this.enterManualCandidates) {
-        const loc = p.locator(sel).first();
-        if (await loc.count() === 0) continue;
-        if (!(await loc.isVisible())) continue;
-        await loc.scrollIntoViewIfNeeded().catch(()=>{});
-        await loc.click({ force: true });
-        return true;
+  // --- Public: scanPassport() ---
+  // Attempts to open the scan UI using many strategies (selectors, frames, center click, retries).
+  // Returns true if it appears likely the scan UI opened (best-effort), otherwise throws.
+  async scanPassport({ attempts = 5 } = {}) {
+    const page = this.page;
+
+    // tryScanClick (copied / adapted)
+    const tryScanClick = async () => {
+      const locatorFns = [
+        () => page.locator('[data-testid="PassportDetailsScanPassport"], [data-testid="ScanPassportButton"], [data-testid*="ScanPassport"]'),
+        () => page.getByRole('button', { name: /Scan passport/i }),
+        () => page.getByRole('button', { name: /Scan/i }),
+        () => page.getByText(/Scan passport/i),
+        () => page.getByText(/Scan/i),
+        () => page.locator('button[class*="scan"], .scan-passport, .scanPassport, [class*="scanPassport"]'),
+        () => page.locator('button:has(svg), button:has(.icon)').filter({ hasText: /scan|passport/i }),
+        () => page.locator('text=/scan passport/i'),
+        () => page.locator('xpath=//*[contains(translate(normalize-space(.),"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"), "scan") and contains(translate(normalize-space(.),"ABCDEFGHIJKLMNOPQRSTUVWXYZ","abcdefghijklmnopqrstuvwxyz"), "passport")]'),
+      ];
+
+      const tryClickLoc = async (loc) => {
+        try {
+          if (!(await loc.count())) return false;
+          const n = Math.min(await loc.count(), 5);
+          for (let i = 0; i < n; ++i) {
+            const l = loc.nth(i);
+            if (!(await l.isVisible())) continue;
+            try {
+              await l.scrollIntoViewIfNeeded().catch(()=>{});
+              await l.click({ force: true, trial: false }).catch(()=>{});
+              await page.waitForTimeout(250);
+              return true;
+            } catch (err) {
+              try {
+                const box = await l.boundingBox();
+                if (box) {
+                  await page.mouse.click(box.x + box.width/2, box.y + box.height/2, { force: true });
+                  await page.waitForTimeout(250);
+                  return true;
+                }
+              } catch (e2) { /* ignore */ }
+            }
+          }
+        } catch (e) {}
+        return false;
+      };
+
+      for (let attempt = 0; attempt < attempts; ++attempt) {
+        for (const fn of locatorFns) {
+          const loc = fn();
+          if (!loc) continue;
+          try {
+            if (await tryClickLoc(loc)) return true;
+          } catch (e) {}
+        }
+
+        // try clicking inside frames (scan UI sometimes in iframe)
+        try {
+          const frames = page.frames();
+          for (const f of frames) {
+            if (f === page.mainFrame()) continue;
+            try {
+              const clicked = await f.evaluate(() => {
+                const needle = /scan passport/i;
+                const candidates = Array.from(document.querySelectorAll('a, button, span, div, p, label'));
+                for (const el of candidates) {
+                  const txt = (el.textContent || '').trim();
+                  if (txt && needle.test(txt)) {
+                    try { el.click(); return true; } catch(e) {
+                      try { el.dispatchEvent(new MouseEvent('click', { bubbles: true })); return true; } catch(e2) {}
+                    }
+                  }
+                }
+                return false;
+              }).catch(()=>false);
+              if (clicked) return true;
+            } catch (e) {}
+          }
+        } catch (e) {}
+
+        // dismiss overlays and retry
+        await this.dismissOverlays();
+        await page.waitForTimeout(350);
+
+        // try clicking center of viewport
+        try {
+          const vw = await page.evaluate(() => ({ w: window.innerWidth, h: window.innerHeight }));
+          await page.mouse.click(vw.w * 0.5, vw.h * 0.5, { force: true }).catch(()=>{});
+        } catch (e) {}
+
+        await page.waitForTimeout(250 + attempt * 150);
       }
+
+      return false;
+    }; // end tryScanClick
+
+    // run tryScanClick and handle result
+    try {
+      const clickedScan = await tryScanClick();
+      if (!clickedScan) {
+        await saveDebug(page, 'scan-passport-not-found');
+        throw new Error('Scan passport control not found');
+      }
+      // small settle
+      await page.waitForLoadState('networkidle').catch(()=>{});
+      await page.waitForTimeout(250);
+      return true;
+    } catch (err) {
+      await saveDebug(page, 'scan-passport-fail');
+      throw err;
+    }
+  } // end scanPassport
+
+  // --- Public: enterPassportManually() ---
+  // Attempts to click the "Enter passport manually" control by trying:
+  //  - testid locators, role, link, text, anchors, frames, re-clicking scan, and final DOM evaluate click
+  async enterPassportManually({ reattemptScan = true } = {}) {
+    const page = this.page;
+
+    // helper to look for testid / role / text candidates in main page
+    const tryMainDomCandidates = async () => {
+      // 1) Prefer explicit data-testid if available
+      const testIdLoc = page.locator('[data-testid="EnterPassportManuallyButton"], [data-testid="EnterPassportManually"], [data-testid*="EnterPassport"]');
+      if (await testIdLoc.count() > 0) {
+        for (let i = 0; i < await testIdLoc.count(); ++i) {
+          const l = testIdLoc.nth(i);
+          if (await l.isVisible()) {
+            const ok = await this.robustClickLocator(l).catch(()=>false);
+            if (ok) return true;
+          }
+        }
+      }
+
+      // 2) Try common roles / direct text
+      const byRole = page.getByRole('button', { name: /Enter passport manually/i });
+      if (await byRole.count() > 0) {
+        if (await byRole.first().isVisible()) {
+          if (await this.robustClickLocator(byRole.first()).catch(()=>false)) return true;
+        }
+      }
+
+      const byLink = page.getByRole('link', { name: /Enter passport manually/i });
+      if (await byLink.count() > 0) {
+        if (await byLink.first().isVisible()) {
+          if (await this.robustClickLocator(byLink.first()).catch(()=>false)) return true;
+        }
+      }
+
+      const byText = page.getByText(/Enter passport manually/i);
+      if (await byText.count() > 0) {
+        if (await byText.first().isVisible()) {
+          if (await this.robustClickLocator(byText.first()).catch(()=>false)) return true;
+        }
+      }
+
+      // 3) CSS anchors/buttons that include text
+      const anchors = page.locator('a, button, span, p').filter({ hasText: /Enter passport manually/i });
+      if (await anchors.count() > 0) {
+        for (let i = 0; i < await anchors.count(); ++i) {
+          const l = anchors.nth(i);
+          if (await l.isVisible()) {
+            if (await this.robustClickLocator(l).catch(()=>false)) return true;
+          }
+        }
+      }
+
       return false;
     };
 
-    let clicked = false;
+    try {
+      // 1) Try main DOM & frames
+      let manualClicked = false;
+      manualClicked = await tryMainDomCandidates();
 
-    // Poll loop: search main page → frames → any new pages until deadline or click succeeds
-    while (Date.now() < deadline && !clicked) {
-      // 1) Try the current page
-      clicked = await tryClickInPage(page);
-      if (clicked) break;
-
-      // 2) Try frames (frame locators usually supported; handle exceptions defensively)
-      for (const f of page.frames()) {
-        try {
-          if (await tryClickInPage(f)) { clicked = true; break; }
-        } catch {}
-      }
-      if (clicked) break;
-
-      // 3) Try newly opened pages/popups (captured via context 'page' event)
-      for (const np of newPages.slice()) {
-        if (np.isClosed && np.isClosed()) continue;
-        if (await tryClickInPage(np)) {
-          // If we successfully clicked in a popup, switch the POM to use this new page
-          this.page = np;
-          clicked = true;
-          break;
+      // 2) Try searching in child frames (camera/modal may be in iframe)
+      if (!manualClicked) {
+        const frames = page.frames();
+        for (const f of frames) {
+          if (f === page.mainFrame()) continue;
+          const did = await this.clickManualInFrame(f);
+          if (did) { manualClicked = true; break; }
         }
       }
-      if (clicked) break;
 
-      // Wait briefly before retrying
-      await page.waitForTimeout(pollInterval);
+      // 3) If still not clicked, attempt re-clicking scan (if requested) and retry a few times
+      if (!manualClicked && reattemptScan) {
+        for (let attempt = 0; attempt < 3 && !manualClicked; ++attempt) {
+          await this.dismissOverlays();
+          // attempt to re-open scan (best-effort) — we call scanPassport but ignore if it errors
+          try { await this.scanPassport({ attempts: 2 }).catch(()=>{}); } catch (e) {}
+          await page.waitForTimeout(350);
+
+          // retry main DOM text search
+          const byText2 = page.getByText(/Enter passport manually/i);
+          if (await byText2.count() > 0) {
+            for (let i = 0; i < await byText2.count(); ++i) {
+              const l = byText2.nth(i);
+              if (await l.isVisible()) {
+                manualClicked = await this.robustClickLocator(l).catch(()=>false);
+                if (manualClicked) break;
+              }
+            }
+          }
+        }
+      }
+
+      // 4) Final brute-force DOM evaluate click if not found
+      if (!manualClicked) {
+        const mainClicked = await page.evaluate(() => {
+          const needle = /enter passport manually/i;
+          const candidates = Array.from(document.querySelectorAll('a, button, span, div, p, label'));
+          for (const el of candidates) {
+            const txt = (el.textContent || '').trim();
+            if (txt && needle.test(txt)) {
+              try { el.click(); return true; } catch (e) {
+                try {
+                  el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+                  el.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+                  el.dispatchEvent(new MouseEvent('mouseup', { bubbles: true }));
+                  el.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                  return true;
+                } catch (err) {}
+              }
+            }
+          }
+          return false;
+        }).catch(()=>false);
+        if (mainClicked) manualClicked = true;
+      }
+
+      if (!manualClicked) {
+        await saveDebug(page, 'enter-passport-manual-not-found');
+        throw new Error('Enter passport manually option not found after exhaustive attempts');
+      }
+
+      // allow UI to settle
+      await page.waitForLoadState('networkidle').catch(()=>{});
+      await page.waitForTimeout(600);
+      return true;
+    } catch (e) {
+      await saveDebug(page, 'enter-passport-manual-fail');
+      throw e;
     }
-
-    // Stop listening for new pages
-    ctx.off('page', onNew);
-
-    // If we failed to find/click the control, capture debug and raise an error
-    if (!clicked) {
-      if (typeof saveDebug === 'function') await saveDebug(page, 'enter-manual-not-found');
-      // Try to capture debug for any new pages too
-      try { for (const np of newPages) if (!np.isClosed()) await saveDebug(np, 'enter-manual-newpage'); } catch {}
-      throw new Error('Enter passport manually element not found');
-    }
-
-    // Wait for any network or navigation to settle after the click
-    await this.page.waitForLoadState('networkidle').catch(()=>{});
-    return this.page;
-  }
-
-  // proceedToManualEntry
-  // Convenience method that performs the full sequence:
-  //  - click the Scan Passport control
-  //  - short pause to allow modal/frame to render
-  //  - click the Enter Passport Manually control (robust across frames/popups)
-  async proceedToManualEntry(opts = {}) {
-    await this.clickScanPassport(opts);
-    // brief pause to let camera modal/popover settle (adjust if necessary)
-    await this.sleep(500);
-    await this.clickEnterPassportManually(opts);
-    return this.page;
-  }
+  } // end enterPassportManually
 }

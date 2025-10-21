@@ -21,7 +21,7 @@ This assignment was designed to demonstrate:
 
 - ✅ End-to-end automation using **Playwright Test Runner**  
 - ✅ Use of **Page Object Model (POM)** for modular, reusable code  
-- ✅ Integration with **Mail.tm API** to dynamically fetch OTPs  
+- ✅ Integration with **Mail.tm API** to create email ids dynamically & fetch OTPs  
 - ✅ Robust handling of asynchronous events, animations, and flaky selectors  
 - ✅ Clean, readable, and maintainable codebase structure  
 
@@ -60,16 +60,19 @@ Clone or download the repository, then open it in VS Code.
 Run the following commands in the terminal:
 
 ### Install project dependencies
-  npm install
+  mkdir planet_assignmet
+  cd planet_assignmet
+  npm init -y
 
-### Install Playwright browsers (Chromium, Firefox, WebKit)
+### Install Playwright and browsers (Chromium, Firefox, WebKit)
+  npm install playwright
   npx playwright install
 
 
 ### ▶️ Running the Tests
 
 ### Run all tests using:
-
+ cd tests/
  npx playwright test
 
 
@@ -77,6 +80,7 @@ Run the following commands in the terminal:
 
  npx playwright test tests/shopperPortal.spec.js
 
+ npx playwright test tests/shopperPortal.spec.js --debug (for debug mode)
 
 ### To open the Playwright HTML report after execution:
 

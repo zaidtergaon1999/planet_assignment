@@ -61,11 +61,14 @@ Run the following commands in the terminal:
 
 ### Install project dependencies
   mkdir planet_assignmet
+
   cd planet_assignmet
+
   npm init -y
 
 ### Install Playwright and browsers (Chromium, Firefox, WebKit)
   npm install playwright
+
   npx playwright install
 
 
@@ -73,6 +76,7 @@ Run the following commands in the terminal:
 
 ### Run all tests using:
  cd tests/
+ 
  npx playwright test
 
 

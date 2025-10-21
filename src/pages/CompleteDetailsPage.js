@@ -12,11 +12,6 @@ export default class CompleteDetails {
   async fillCompleteDetails(selectedCountry = 'Ireland') {
     const page = this.page;
 
-    // --- Try to ensure we are on the right page and the network is quiet ---
-    // These waits are best-effort; if they fail we continue rather than abort.
-    await page.waitForURL(/CompleteDetails/, { timeout: 10000 }).catch(() => {});
-    await page.waitForLoadState('networkidle').catch(() => {});
-
     // Decide which country to use for country-specific fields; default to 'Ireland'.
     const countryToUse = (typeof selectedCountry !== 'undefined' && selectedCountry) ? selectedCountry : 'Ireland';
     console.log('Filling Complete Details using country:', countryToUse);

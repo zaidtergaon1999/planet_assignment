@@ -23,7 +23,6 @@ export const use = {
     // Save screenshots on failure, retain videos only when failing
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
-    // Trace strategy: keep on first retry (good for debugging flaky tests)
     trace: 'on',
 
     // Launch options applied to the browser. slowMo set to 500 as requested.
@@ -45,6 +44,7 @@ export const use = {
     // Retain traces/screenshots in the artifacts folder
     // Playwright will write them to test-results by default when configured above.
 };
+
 export const projects = [
     {
         name: 'chromium',

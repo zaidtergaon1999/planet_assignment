@@ -24,7 +24,7 @@ export const use = {
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
     // Trace strategy: keep on first retry (good for debugging flaky tests)
-    trace: 'on-first-retry',
+    trace: 'on',
 
     // Launch options applied to the browser. slowMo set to 500 as requested.
     launchOptions: {

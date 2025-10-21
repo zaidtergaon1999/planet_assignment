@@ -42,7 +42,7 @@ This assignment was designed to demonstrate:
 
 # 💻 Setup Instructions
 
-### 1️⃣ Install Node.js
+### Install Node.js
 
 If Node.js is not installed, download it from the official site:  
 👉 [https://nodejs.org/](https://nodejs.org/)
@@ -53,30 +53,29 @@ npm -v
 
 
 
-###  2️⃣ Install Playwright and Project Dependencies
+### Install Playwright and Project Dependencies
 
 Clone or download the repository, then open it in VS Code.
 
 Run the following commands in the terminal:
 
 ### Install project dependencies
-  mkdir planet_assignmet
 
   cd planet_assignmet
 
   npm init -y
 
 ### Install Playwright and browsers (Chromium, Firefox, WebKit)
+ 
   npm install playwright
 
   npx playwright install
 
 
-### ▶️ Running the Tests
-
-### Run all tests using:
- cd tests/
+### ▶️Run all tests using:
  
+ cd tests/
+
  npx playwright test
 
 
@@ -86,9 +85,9 @@ Run the following commands in the terminal:
 
  npx playwright test tests/shopperPortal.spec.js --debug (for debug mode)
 
-### To open the Playwright HTML report after execution:
+### To open the Playwright trace after execution:
 
-npx playwright show-report
+npx playwright show-trace trace.zip
 
 
 

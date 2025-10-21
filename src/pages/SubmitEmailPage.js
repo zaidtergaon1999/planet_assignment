@@ -3,7 +3,7 @@
 
 // Export a Page Object Model class that encapsulates interactions with the "submit email" screen.
 // The class is intentionally defensive about selectors so it works across slightly different UIs.
-export default class SubmitEmailPage {
+export default class SubmitEmail {
   /**
    * Constructor
    *

@@ -2,7 +2,7 @@
 // Playwright Page Object for filling passport details.
 // Exports: default class PassportDetailsPage
 
-export default class PassportDetailsPage {
+export default class PassportDetails {
   /**
    * Constructor
    * @param {import('@playwright/test').Page} page - Playwright page instance used to interact with the browser.

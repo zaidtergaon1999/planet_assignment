@@ -1,4 +1,4 @@
-export default class ConfirmPassportPage {
+export default class ConfirmPassportButton {
   // Store the Playwright page object so methods can interact with the browser.
   constructor(page) {
     this.page = page;

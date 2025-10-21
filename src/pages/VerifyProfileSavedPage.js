@@ -3,7 +3,7 @@
 // Specifically, it checks for a toast or confirmation message that says "Profile details saved"
 // and waits for a short period before continuing to ensure stability in subsequent steps.
 
-export default class VerifyProfileSavedPage {
+export default class VerifyProfileSavedToast {
   /**
    * Constructor
    * @param {import('playwright').Page} page - Playwright page instance used to interact with the browser.

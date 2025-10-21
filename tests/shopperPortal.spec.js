@@ -2,15 +2,15 @@
 // End-to-end Shopper Portal flow using modular POM structure
 
 import { test } from '@playwright/test';
-import SubmitEmailPage from '../src/pages/SubmitEmailPage.js';
+import SubmitEmail from '../src/pages/SubmitEmailPage.js';
 import createMailTmAccount from '../src/services/mailTmService.js';
-import OtpPage from '../src/pages/OtpPage.js';
-import TosPage from '../src/pages/TosPage.js';
-import PassportScanner from '../src/pages/PassportScanPage.js';
-import PassportDetailsPage from '../src/pages/PassportDetailsPage.js';
-import ConfirmPassportPage from '../src/pages/ConfirmPassportPage.js';
-import CompleteDetailsPage from '../src/pages/CompleteDetailsPage.js';
-import VerifyProfileSavedPage from '../src/pages/VerifyProfileSavedPage.js';
+import SubmitOtp from '../src/pages/SubmitOtpPage.js';
+import TosCheck from '../src/pages/TosPage.js';
+import PassportButtons from '../src/pages/PassportButtonPage.js';
+import PassportDetails from '../src/pages/PassportDetailsPage.js';
+import ConfirmPassportButton from '../src/pages/ConfirmPassportPage.js';
+import CompleteDetails from '../src/pages/CompleteDetailsPage.js';
+import VerifyProfileSavedToast from '../src/pages/VerifyProfileSavedPage.js';
 
 
 test('Shopper Portal end-to-end verification flow', async ({ page, baseURL }) => {
@@ -20,40 +20,40 @@ test('Shopper Portal end-to-end verification flow', async ({ page, baseURL }) =>
     console.log('[spec] Mail.tm address created:', address);
 
     // ---------- STEP 2: Open the portal and submit the generated email ----------
-    const submitEmailPage = new SubmitEmailPage(page, process.env.PORTAL_URL || 'https://globaltes-taxfree.planetpayment.com/ShopperPortalEU/');
-    await submitEmailPage.openAndSubmitEmail(address);
+    const submitEmail = new SubmitEmail(page, baseURL);
+    await submitEmail.openAndSubmitEmail(address);
 
     // ---------- STEP 3: Poll Mail.tm for OTP and fill it ----------
-    const otpPage = new OtpPage(page);
-    await otpPage.waitForAndFillOtp(token, { otpTimeout: 90000, verifyWait: 20000 });
+    const submitOtp = new SubmitOtp(page);
+    await submitOtp.waitForAndFillOtp(token, { otpTimeout: 90000, verifyWait: 20000 });
 
     // ---------- STEP 4: Accept Terms of Service ----------
-    const tos = new TosPage(page);
-    await tos.acceptTermsAndContinue();
+    const tosCheck = new TosCheck(page);
+    await tosCheck.acceptTermsAndContinue();
 
     // ---------- STEP 5: Choose “Enter passport manually” ----------
-    const scanner = new PassportScanner(page);
-    await scanner.scanPassport();
-    await scanner.enterPassportManually();
+    const passportClick = new PassportButtons(page);
+    await passportClick.scanPassport();
+    await passportClick.enterPassportManually();
 
     // ---------- STEP 6: Fill Passport Details ----------
-    const passportDetails = new PassportDetailsPage(page);
+    const passportDetails = new PassportDetails(page);
     await passportDetails.fillPassportNumber();
     await passportDetails.fillPassportExpiryDate();
     await passportDetails.fillPassportCountry();
     await passportDetails.clickConfirm();
 
     // ---------- STEP 7: Confirm passport details ----------
-    const confirmPassportPage = new ConfirmPassportPage(page);
-    await confirmPassportPage.ConfirmDetails();
+    const confirmPassportButton = new ConfirmPassportButton(page);
+    await confirmPassportButton.ConfirmDetails();
 
     // ---------- STEP 8: Fill complete personal details ----------
-    const completeDetailsPage = new CompleteDetailsPage(page);
-    await completeDetailsPage.fillCompleteDetails('Ireland');
+    const completeDetails = new CompleteDetails(page);
+    await completeDetails.fillCompleteDetails();
 
     // ---------- STEP 9: Verify profile details saved ----------
-    const verifyPage = new VerifyProfileSavedPage(page);
-    await verifyPage.verifyProfileSaved(10000);
+    const verifyProfile = new VerifyProfileSavedToast(page);
+    await verifyProfile.verifyProfileSaved();
 
     console.log('[spec] ✅ Shopper Portal flow completed successfully!');
   } catch (err) {

@@ -2,7 +2,7 @@
 // Page Object Model (POM) for interacting with the Terms of Service (TOS) page.
 // This page handles checking the terms acceptance box and clicking "Continue" to proceed.
 
-export default class TosPage {
+export default class TosCheck {
   /**
    * Constructor
    * @param {import('playwright').Page} page - Playwright page instance to interact with the browser.

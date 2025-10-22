@@ -1,3 +1,7 @@
+import fs from 'fs';
+import path from 'path';
+
+
 export default class CompleteDetails {
   // Store the Playwright page object so all methods operate on the same browser page.
   constructor(page) {
@@ -12,6 +16,10 @@ export default class CompleteDetails {
   async fillCompleteDetails(selectedCountry = 'Ireland') {
     const page = this.page;
 
+     // Load JSON data dynamically from src/data/data.json
+    const dataPath = path.resolve('./src/data/data.json');
+    const jsonData = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+
     // Decide which country to use for country-specific fields; default to 'Ireland'.
     const countryToUse = (typeof selectedCountry !== 'undefined' && selectedCountry) ? selectedCountry : 'Ireland';
     console.log('Filling Complete Details using country:', countryToUse);
@@ -19,51 +27,16 @@ export default class CompleteDetails {
     // Utility to pick a random element from an array when we need sample data.
     const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
-    // --- Sample data pools (focused on Ireland examples) ---
-    const givenNames = [
-      'Aoife', 'Saoirse', 'Conor', 'Liam', 'Emma', 'Jack', 'Sean',
-      'Niamh', 'Cian', 'Emily', 'Eoin', 'Fionn', 'Roisin', 'Oisin', 'Kate'
-    ];
+     const {
+      givenNames,
+      surnames,
+      addresses1,
+      addresses2,
+      postcodes,
+      cities,
+      states
+    } = jsonData;
 
-    const surnames = [
-      'Murphy', 'Kelly', "OSullivan", 'Walsh', 'Byrne',
-      'Ryan', "OConnor", "ONeill", 'Doyle', 'McCarthy',
-      'Higgins', 'Kavanagh', 'Brady', 'OReilly', 'Clarke'
-    ];
-
-    const addresses1 = [
-      "12 OConnell Street",
-      'Flat 4, 21 Merrion Square',
-      "3 St. Stephens Green",
-      '47 Grafton Street',
-      '8 Main Street',
-      '2 Temple Bar',
-      'Unit 5, Beacon Court, Sandyford',
-      '15 College Green',
-      '24 Patrick Street',
-      '6 High Street, Galway'
-    ];
-
-    const addresses2 = [
-      'Apt 2', '1st Floor', '2nd Floor', 'Suite 6', 'Rear Flat',
-      'Unit B', 'Near River Liffey', 'co Building Manager', ''
-    ];
-
-    const postcodes = [
-      'D02 X285', 'D01 F5P2', 'T12 R9K4', 'H91 K2F3', 'V94 Y7P8',
-      'F91 P2K3', 'E91 C5D2', 'A63 V2F8', 'P43 D6R2', 'R95 X2N8'
-    ];
-
-    const cities = [
-      'Dublin', 'Cork', 'Galway', 'Limerick', 'Waterford',
-      'Sligo', 'Drogheda', 'Dundalk', 'Bray', 'Kilkenny'
-    ];
-
-    const states = [
-      'County Dublin', 'County Cork', 'County Galway', 'County Limerick',
-      'County Waterford', 'County Sligo', 'County Meath', 'County Wicklow',
-      'County Kilkenny', 'County Donegal'
-    ];
 
     // ---------- small helper: safeClick ----------
     // Scrolls the element into view and attempts to click it.

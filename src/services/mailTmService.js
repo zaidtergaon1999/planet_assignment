@@ -36,7 +36,7 @@ export default async function createMailTmAccount() {
   // Create a unique identifier using the current timestamp.
   const randomId = Date.now();
   // Construct a unique email address using the domain fetched earlier.
-  const address = `zaidtergaon_${randomId}@${domain}`;
+  const address = `user_${randomId}@${domain}`;
   // Generate a simple password pattern for this temporary account.
   const password = `P@ssw0rd${randomId}`;
 

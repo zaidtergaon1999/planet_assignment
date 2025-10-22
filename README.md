@@ -81,16 +81,15 @@ Run the following commands in the terminal:
 
 ### To run a specific test (e.g., Shopper Portal):
 
- npx playwright test tests/shopperPortal.spec.js
-
- npx playwright test tests/shopperPortal.spec.js --debug (for debug mode)
+ npm run test:e2e (i have configured this in package.json)
 
 ### To open the Playwright trace after execution:
 
 npx playwright show-trace trace.zip
 
+### To open the Playwright html report after execution:
 
-
+npx playwright show-report
 
 ## Test Flow (Step-by-Step) 🧠 
 

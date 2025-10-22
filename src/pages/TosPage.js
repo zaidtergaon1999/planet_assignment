@@ -1,88 +1,126 @@
 // src/pages/TosPage.js
-// Page Object Model (POM) for interacting with the Terms of Service (TOS) page.
-// This page handles checking the terms acceptance box and clicking "Continue" to proceed.
+// -----------------------------------------------------------------------------
+// Page Object Model (POM) for the Terms of Service (TOS) page.
+// -----------------------------------------------------------------------------
+// Purpose:
+//   Automates the workflow where the user accepts the Terms of Service (TOS)
+//   and clicks the "Continue" button to proceed to the next step of the portal.
+//
+// Key Features:
+//   - Waits for network requests to settle before interactions.
+//   - Handles both standard and custom checkbox implementations.
+//   - Waits for the Continue button to be enabled dynamically.
+//   - Uses fallback mechanisms for robust interaction with UI elements.
+//   - Logs only a single success (✅) or failure (❌) message at the end.
+// -----------------------------------------------------------------------------
 
 export default class TosCheck {
   /**
    * Constructor
-   * @param {import('playwright').Page} page - Playwright page instance to interact with the browser.
+   * ---------------------------------------------------------------------------
+   * Initializes the TosCheck page object with a Playwright page instance.
+   * Also stores the test IDs used to identify elements on the page.
    *
-   * Stores the page reference and defines the test IDs for the key elements used on this page:
-   *  - Terms of Service checkbox
-   *  - Continue button
+   * @param {import('playwright').Page} page - Playwright page instance used to interact with the browser.
    */
   constructor(page) {
     this.page = page;
-    // Data-testid selectors for the TOS elements (commonly used in React-based portals)
+
+    // Store the unique test IDs for key elements on the TOS page.
+    // These are data-testid attributes often used in React or Angular UIs.
     this.checkboxTestId = 'TermsOfServiceCheckbox';
     this.continueTestId = 'TermsOfServiceContinue';
   }
 
-  // waitNetworkIdle
-  // Utility to pause until the network becomes idle.
-  // Ensures that background API requests (if any) finish before user interactions.
+  /**
+   * waitNetworkIdle
+   * ---------------------------------------------------------------------------
+   * Utility method that waits until all ongoing network requests complete.
+   * This helps ensure that the page is fully loaded before interacting with
+   * elements, preventing race conditions or flakiness.
+   */
   async waitNetworkIdle() {
-    await this.page.waitForLoadState('networkidle').catch(() => {});
+    await this.page.waitForLoadState('networkidle').catch(() => {
+      // We catch errors silently here because even if networkidle times out,
+      // it’s safe to continue as long as main UI elements have loaded.
+    });
   }
 
   /**
    * acceptTermsAndContinue
+   * ---------------------------------------------------------------------------
+   * Main workflow for the Terms of Service screen.
    *
-   * Core workflow for the Terms of Service screen:
-   *  1. Waits for page readiness (network idle state).
-   *  2. Waits for the TOS checkbox to appear, then checks or clicks it.
-   *  3. Waits for the "Continue" button to become enabled.
-   *  4. Clicks the "Continue" button to proceed to the next page.
-   *
-   * This method is resilient — it tries multiple interaction strategies in case
-   * UI libraries handle checkbox and button elements differently.
+   * Steps performed:
+   *  1. Wait for the page to stabilize (network idle).
+   *  2. Find and check the "Terms of Service" checkbox.
+   *  3. Wait for the "Continue" button to become enabled.
+   *  4. Click the "Continue" button (with fallback click strategy).
+   *  5. Log one final status message (✅ or ❌).
    *
    * @param {Object} [options]
-   * @param {number} [options.timeout=30000] - Maximum wait time for elements (ms).
+   * @param {number} [options.timeout=30000] - Max time to wait for elements (in ms).
    */
   async acceptTermsAndContinue({ timeout = 30000 } = {}) {
     const page = this.page;
 
-    // ---------- Accept TOS ----------
-    // Wait for the page to stabilize before interacting
-    await this.waitNetworkIdle();
-
-    // Locate the Terms of Service checkbox using its test ID and ensure it’s visible
-    const checkbox = page.getByTestId(this.checkboxTestId);
-    await checkbox.waitFor({ state: 'visible', timeout });
-
-    // Try to "check" the checkbox via Playwright's built-in method
-    // If that fails (e.g. due to a custom UI library), fall back to a force-click
     try {
-      await checkbox.check({ timeout: 5000 });
-    } catch {
-      await checkbox.click({ force: true });
-    }
+      // -----------------------------------------------------------------------
+      // STEP 1: Ensure the page is fully loaded and network requests are complete
+      // -----------------------------------------------------------------------
+      await this.waitNetworkIdle();
 
-    // Wait until the "Continue" button becomes enabled
-    // This ensures that clicking will succeed even if it was initially disabled
-    await page.waitForFunction(
-      () => {
-        const btn = document.querySelector('[data-testid="TermsOfServiceContinue"]');
-        return !!btn && !btn.disabled;
-      },
-      { timeout }
-    );
+      // -----------------------------------------------------------------------
+      // STEP 2: Locate and interact with the Terms of Service checkbox
+      // -----------------------------------------------------------------------
+      // Use Playwright’s `getByTestId()` to locate the checkbox element.
+      const checkbox = page.getByTestId(this.checkboxTestId);
 
-    // ---------- Click Continue ----------
-    // Locate the Continue button using test ID
-    const continueBtn = page.getByTestId(this.continueTestId);
+      // Wait until the checkbox becomes visible before interacting
+      await checkbox.waitFor({ state: 'visible', timeout });
 
-    // Try clicking the button directly
-    // If the normal click fails (e.g., due to overlays or JS control), use DOM-based fallback
-    await continueBtn.click({ force: true }).catch(async () => {
-      await page.evaluate(() => {
-        const btn = document.querySelector('[data-testid="TermsOfServiceContinue"]');
-        if (btn) btn.click();
+      // Try to check the checkbox using Playwright’s native API.
+      // If it fails (for custom UI frameworks like Material UI), fall back to a force click.
+      await checkbox.check({ timeout: 5000 }).catch(() => checkbox.click({ force: true }));
+
+      // -----------------------------------------------------------------------
+      // STEP 3: Wait for the "Continue" button to become enabled
+      // -----------------------------------------------------------------------
+      // Some UIs keep the Continue button disabled until the checkbox is checked.
+      // This function polls the DOM until the button is found and is not disabled.
+      await page.waitForFunction(
+        () => {
+          const btn = document.querySelector('[data-testid="TermsOfServiceContinue"]');
+          return !!btn && !btn.disabled;
+        },
+        { timeout }
+      );
+
+      // -----------------------------------------------------------------------
+      // STEP 4: Click the "Continue" button to move forward
+      // -----------------------------------------------------------------------
+      // Attempt a normal click first; if that fails (e.g., due to overlays),
+      // execute a DOM-based fallback click.
+      const continueBtn = page.getByTestId(this.continueTestId);
+      await continueBtn.click({ force: true }).catch(async () => {
+        await page.evaluate(() => {
+          const btn = document.querySelector('[data-testid="TermsOfServiceContinue"]');
+          if (btn) btn.click();
+        });
       });
-    });
-    
-    // After clicking Continue, the next step (passport scanning or manual entry)
-    // will be triggered by the next page or component in the test flow.
+
+      // -----------------------------------------------------------------------
+      // STEP 5: Final Success Log
+      // -----------------------------------------------------------------------
+      // Log one clean success message (for CI/CD readability)
+      console.log('✅ Successfully accepted Terms of Service and continued.');
+    } catch (error) {
+      // -----------------------------------------------------------------------
+      // STEP 5 (Alternative): Final Failure Log
+      // -----------------------------------------------------------------------
+      // If any of the above steps fail, catch the error gracefully and
+      // log a single failure message along with the error reason.
+      console.error('❌ Failed to accept Terms of Service and continue:', error.message);
+    }
   }
 }

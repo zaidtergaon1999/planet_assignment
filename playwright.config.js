@@ -28,7 +28,7 @@ export const use = {
     // Launch options applied to the browser. slowMo set to 500 as requested.
     launchOptions: {
         // slowMo here inserts a delay between Playwright actions.
-        slowMo: 500,
+        slowMo: 300,
         args: [
             '--use-fake-ui-for-media-stream',
             '--use-fake-device-for-media-stream',

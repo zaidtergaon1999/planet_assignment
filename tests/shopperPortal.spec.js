@@ -17,7 +17,6 @@ test('Shopper Portal end-to-end verification flow', async ({ page, baseURL }) =>
   try {
     // ---------- STEP 1: Create a disposable email address ----------
     const {address, token } = await createMailTmAccount();
-    console.log('[spec] Mail.tm address created:', address);
 
     // ---------- STEP 2: Open the portal and submit the generated email ----------
     const submitEmail = new SubmitEmail(page, baseURL);

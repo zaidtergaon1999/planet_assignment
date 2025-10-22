@@ -1,82 +1,109 @@
 // services/mailTmService.js
-// This service provides a helper function to create a disposable email account using the Mail.tm API.
-// It returns an object containing the generated email address, password, and access token.
-// This is useful for automation flows that require temporary email addresses for OTP or signup verification.
+// -----------------------------------------------------------------------------
+// Purpose:
+//   This service creates a **disposable email account** using the Mail.tm API.
+//
+// Usage Context:
+//   Ideal for automation flows where temporary email accounts are needed
+//   (e.g., signup tests, OTP verification, or sandbox login scenarios).
+//
+// Functionality Overview:
+//   1. Fetch available domains from Mail.tm.
+//   2. Generate a random unique email + password.
+//   3. Create the account on Mail.tm.
+//   4. Authenticate and retrieve an access token.
+//   5. Return the credentials ({ address, password, token }) with one clean log.
+//
+// Note: Uses `node-fetch` for Node <18 environments. If running Node 18+, you can
+//       remove the import since `fetch` is globally available.
+// -----------------------------------------------------------------------------
 
-import fetch from 'node-fetch'; // For Node <18 environments that don't have global `fetch`. Remove if running on Node 18+.
+import fetch from 'node-fetch'; // Remove if using Node 18+ (global fetch available)
 
-// Main exported function: creates a Mail.tm account and returns { address, password, token }.
 export default async function createMailTmAccount() {
+  try {
+    // -------------------------------------------------------------------------
+    // STEP 1: Fetch available mail.tm domains
+    // -------------------------------------------------------------------------
+    // Mail.tm provides temporary email domains through their public API.
+    // We’ll retrieve this list and use one of them to create our disposable mailbox.
+    const domainResp = await fetch('https://api.mail.tm/domains');
 
-  // ---------- Step 1: Fetch available mail.tm domains ----------
-  // Mail.tm provides domains that can be used for disposable email accounts.
-  // This step retrieves a list of domains from the public API endpoint.
-  const domainResp = await fetch('https://api.mail.tm/domains');
+    // Validate HTTP response; if not OK, throw with additional error info.
+    if (!domainResp.ok) {
+      const txt = await domainResp.text().catch(() => domainResp.status);
+      throw new Error('Failed to fetch mail.tm domains: ' + txt);
+    }
 
-  // If the request fails (non-OK response), throw an error with additional context.
-  if (!domainResp.ok) {
-    const txt = await domainResp.text().catch(() => domainResp.status);
-    throw new Error('Failed to fetch mail.tm domains: ' + txt);
+    // Parse the response JSON to extract domain information.
+    const domJson = await domainResp.json();
+    const members = domJson['hydra:member'] || domJson; // Some responses wrap under "hydra:member"
+
+    // Ensure at least one domain is available.
+    if (!Array.isArray(members) || members.length === 0) {
+      throw new Error('No mail.tm domains available');
+    }
+
+    // Use the first domain in the list (simplest and sufficient for automation).
+    const domain = members[0].domain || members[0].name || members[0];
+
+    // -------------------------------------------------------------------------
+    // STEP 2: Generate unique credentials for this temporary mailbox
+    // -------------------------------------------------------------------------
+    // Use the current timestamp to ensure uniqueness across test runs.
+    const randomId = Date.now();
+    const address = `user_${randomId}@${domain}`;
+    const password = `P@ssw0rd${randomId}`;
+
+    // -------------------------------------------------------------------------
+    // STEP 3: Create the Mail.tm account using the generated credentials
+    // -------------------------------------------------------------------------
+    // This registers a new mailbox that can later receive verification emails.
+    const acctResp = await fetch('https://api.mail.tm/accounts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address, password }),
+    });
+
+    // Validate account creation response.
+    if (!acctResp.ok) {
+      const txt = await acctResp.text().catch(() => '');
+      throw new Error('Failed to create Mail.tm account: ' + txt);
+    }
+
+    // -------------------------------------------------------------------------
+    // STEP 4: Authenticate to obtain an access token
+    // -------------------------------------------------------------------------
+    // We now log in with the newly created credentials to receive a JWT token.
+    const tokenResp = await fetch('https://api.mail.tm/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address, password }),
+    });
+
+    // Validate authentication response.
+    if (!tokenResp.ok) {
+      const txt = await tokenResp.text().catch(() => tokenResp.status);
+      throw new Error('Failed to get Mail.tm token: ' + txt);
+    }
+
+    // Extract the token from the response body.
+    const tokenJson = await tokenResp.json();
+    const token = tokenJson.token;
+
+    // Ensure the token was returned.
+    if (!token) throw new Error('Mail.tm token missing from response');
+
+    // -------------------------------------------------------------------------
+    // STEP 5: Log final success and return account credentials
+    // -------------------------------------------------------------------------
+    console.log('✅ Successfully created disposable Mail.tm account.');
+    return { address, password, token };
+  } catch (error) {
+    // -------------------------------------------------------------------------
+    // STEP 5 (Alternative): Log final failure if any step fails
+    // -------------------------------------------------------------------------
+    console.error('❌ Failed to create Mail.tm disposable account:', error.message);
+    throw error; // Re-throw to allow upstream handling in tests
   }
-
-  // Parse the response JSON to extract the available domain list.
-  const domJson = await domainResp.json();
-  // The domains are typically found under the "hydra:member" array.
-  const members = domJson['hydra:member'] || domJson;
-
-  // Validate that at least one domain is available.
-  if (!Array.isArray(members) || members.length === 0) {
-    throw new Error('No mail.tm domains available');
-  }
-
-  // Pick the first available domain from the list for simplicity.
-  const domain = members[0].domain || members[0].name || members[0];
-
-  // ---------- Step 2: Generate credentials for a new disposable account ----------
-  // Create a unique identifier using the current timestamp.
-  const randomId = Date.now();
-  // Construct a unique email address using the domain fetched earlier.
-  const address = `user_${randomId}@${domain}`;
-  // Generate a simple password pattern for this temporary account.
-  const password = `P@ssw0rd${randomId}`;
-
-  // ---------- Step 3: Create the Mail.tm account ----------
-  // POST to the accounts endpoint to register a new mailbox using the generated credentials.
-  const acctResp = await fetch('https://api.mail.tm/accounts', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ address, password })
-  });
-
-  // If the account creation request fails, throw an error.
-  if (!acctResp.ok) {
-    const txt = await acctResp.text().catch(() => '');
-    throw new Error('Failed to create Mail.tm account: ' + txt);
-  }
-
-  // ---------- Step 4: Obtain an authentication token ----------
-  // Mail.tm requires an authentication token to access mailbox content (e.g., to read incoming emails).
-  // We log in with the newly created credentials to retrieve a valid JWT token.
-  const tokenResp = await fetch('https://api.mail.tm/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ address, password })
-  });
-
-  // If login fails or token retrieval fails, throw an error.
-  if (!tokenResp.ok) {
-    const txt = await tokenResp.text().catch(() => tokenResp.status);
-    throw new Error('Failed to get Mail.tm token: ' + txt);
-  }
-
-  // Parse the token from the API response.
-  const tokenJson = await tokenResp.json();
-  const token = tokenJson.token;
-
-  // Ensure the token is present, otherwise throw an error.
-  if (!token) throw new Error('Mail.tm token missing');
-
-  // ---------- Step 5: Return the created account credentials ----------
-  // The returned object includes the generated email address, password, and token.
-  return { address, password, token };
 }

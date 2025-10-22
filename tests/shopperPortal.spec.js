@@ -33,8 +33,8 @@ test('Shopper Portal end-to-end verification flow', async ({ page, baseURL }) =>
 
     // ---------- STEP 5: Choose “Enter passport manually” ----------
     const passportClick = new PassportButtons(page);
-    await passportClick.scanPassport();
-    await passportClick.enterPassportManually();
+    await passportClick.clickScanPassport();
+    await passportClick.clickEnterPassportManually();
 
     // ---------- STEP 6: Fill Passport Details ----------
     const passportDetails = new PassportDetails(page);

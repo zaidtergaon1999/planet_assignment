@@ -732,7 +732,6 @@ export default class CompleteDetails {
       }
       // Wait for any navigation or background activity triggered by save
       await page.waitForLoadState('networkidle').catch(() => {});
-      await page.waitForTimeout(500);
     } catch (e) {
       // Non-fatal: log and continue; caller may decide what to do next.
       console.warn('Save click failed', e?.message || e);

@@ -25,7 +25,7 @@ test('Shopper Portal end-to-end verification flow', async ({ page, baseURL }) =>
 
     // ---------- STEP 3: Poll Mail.tm for OTP and fill it ----------
     const submitOtp = new SubmitOtp(page);
-    await submitOtp.waitForAndFillOtp(token);
+    await submitOtp.findAndFillOtp(token);
 
     // ---------- STEP 4: Accept Terms of Service ----------
     const tosCheck = new TosCheck(page);

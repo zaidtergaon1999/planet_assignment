@@ -1,237 +1,85 @@
-// pages/CompleteDetails.js
-// -----------------------------------------------------------------------------
-// Page Object Model (POM) for filling out the "Complete Details" form.
-//
-// Responsibilities:
-//   - Enter personal information such as name, DOB, nationality, and address.
-//   - Handle dropdowns, date pickers, and mobile number inputs.
-//   - Read test data dynamically from a local JSON file.
-//   - Save the completed form and confirm successful completion.
-//   - Log a single success (✅) or failure (❌) message at the end.
-//
-// Design Goals:
-//   - Data-driven: reads values from ./src/data/data.json
-//   - Resilient: handles custom dropdowns and flexible input locators
-//   - Minimal logging: clean, CI-friendly test output
-// -----------------------------------------------------------------------------
-
+// CompleteDetailsPage - Handles personal information form
 import fs from 'fs';
 import path from 'path';
 
 export default class CompleteDetails {
-  /**
-   * Constructor
-   * ---------------------------------------------------------------------------
-   * @param {import('playwright').Page} page - Playwright page instance
-   * used for browser interaction.
-   */
   constructor(page) {
     this.page = page;
   }
 
-  /**
-   * pick
-   * ---------------------------------------------------------------------------
-   * Utility method to pick a random value from an array.
-   * Used for randomizing test data (names, addresses, etc.).
-   */
+  // Utility to pick random item from array
   pick(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
   }
 
-  /**
-   * fillDateOfBirth
-   * ---------------------------------------------------------------------------
-   * Opens a date picker and selects a random valid date of birth
-   * for a user aged at least 16 years old.
-   *
-   * @returns {Promise<string>} - The selected date of birth in DD/MM/YYYY format.
-   */
+  // Fill first name and surname from test data
+  async fillNames() {
+    const d = JSON.parse(fs.readFileSync('./src/data/data.json', 'utf8'));
+    const firstName = this.pick(d.givenNames);
+    const surname = this.pick(d.surnames);
+    await this.page.fill('#Input_GivenNames', firstName);
+    await this.page.fill('#Input_Surname', surname);
+    console.log(`[CompleteDetails] Names: ${firstName} ${surname}`);
+    return firstName;
+  }
+
+  // Generate random DOB ensuring user is 16+ years old
   async fillDateOfBirth() {
-    const p = this.page;
+    await this.page.locator('input[placeholder="DD/MM/YYYY"]').click({ force: true });
 
-    // Open the date picker by clicking the DOB input field
-    await p
-      .locator('input[placeholder="DD/MM/YYYY"], input[id*=DateOfBirth]')
-      .click({ force: true });
-    await p.waitForSelector('.date-picker, .date-picker__month-year');
-
-    // Generate a random birth date (between 1945 and currentYear - 17)
-    const now = new Date();
-    const year =
-      Math.floor(Math.random() * ((now.getFullYear() - 17) - 1945 + 1)) + 1945;
+    const year = Math.floor(Math.random() * (new Date().getFullYear() - 16 - 1950 + 1)) + 1950;
     const month = Math.floor(Math.random() * 12) + 1;
     const day = Math.floor(Math.random() * 28) + 1;
 
-    // Select year, month, and day if controls exist
-    await p
-      .locator('.date-picker__month-year, .datepicker__month-year')
-      .click({ force: true })
-      .catch(() => {});
-    await p.locator(`button[data-year="${year}"]`).click({ force: true }).catch(() => {});
-    await p.locator(`button[data-month="${month - 1}"]`).click({ force: true }).catch(() => {});
-    await p.locator(`button:has-text("${day}")`).first().click({ force: true }).catch(() => {});
+    await this.page.locator('.date-picker__month-year').click({ force: true });
+    await this.page.locator(`button[data-year="${year}"]`).click({ force: true });
+    await this.page.locator(`button[data-month="${month - 1}"]`).click({ force: true });
+    await this.page.locator(`button:has-text("${day}")`).first().click({ force: true });
 
-    // Confirm selection if OK/Done button exists
-    const ok = p.locator('button:has-text("OK"), button:has-text("Done")').first();
+    const ok = this.page.locator('button:has-text("OK"), button:has-text("Done")').first();
     if (await ok.count()) await ok.click({ force: true });
-
-    // Store and return formatted date for reference
-    this.chosenDOB = `${String(day).padStart(2, '0')}/${String(month).padStart(
-      2,
-      '0'
-    )}/${year}`;
-    return this.chosenDOB;
   }
 
-  /**
-   * selectNationality
-   * ---------------------------------------------------------------------------
-   * Opens the nationality dropdown and selects the provided country.
-   *
-   * @param {string} [country='Ireland'] - The nationality to select.
-   */
+  // Select nationality from custom dropdown
   async selectNationality(country = 'Ireland') {
-    const p = this.page;
-    await p.locator('[data-testid="NationalityValue"]').click({ force: true });
-    await p
-      .waitForSelector('.custom-dropdown-list__overlay, .custom-dropdown-list__dropdown', {
-        timeout: 2000,
-      })
-      .catch(() => {});
-
-    // Click the option matching the country text
-    const opt = p
-      .locator('.custom-dropdown-list__overlay, .custom-dropdown-list__dropdown')
-      .locator(`text=${country}`)
-      .first();
-    if (await opt.count()) await opt.click({ force: true });
-    else
-      await p
-        .getByText(country, { exact: false })
-        .first()
-        .click({ force: true })
-        .catch(() => {});
+    await this.page.locator('[data-testid="NationalityValue"]').click({ force: true });
+    await this.page.getByText(country, { exact: false }).first().click({ force: true });
   }
 
-  /**
-   * selectPermanentResidence
-   * ---------------------------------------------------------------------------
-   * Opens the residence country dropdown and selects the provided country.
-   *
-   * @param {string} [country='Ireland'] - The residence country to select.
-   */
+  // Select permanent residence country from custom dropdown
   async selectPermanentResidence(country = 'Ireland') {
-    const p = this.page;
-    await p.locator('[data-testid="CountryOrRegionValue"]').click({ force: true });
-    await p
-      .waitForSelector('.custom-dropdown-list__overlay, .custom-dropdown-list__dropdown', {
-        timeout: 2000,
-      })
-      .catch(() => {});
+    await this.page.locator('[data-testid="CountryOrRegionValue"]').click({ force: true });
+    await this.page.waitForSelector('.custom-dropdown-list__overlay, .custom-dropdown-list__dropdown', { timeout: 2000 }).catch(() => {});
 
-    const opt = p
-      .locator('.custom-dropdown-list__overlay, .custom-dropdown-list__dropdown')
-      .locator(`text=${country}`)
-      .first();
+    const opt = this.page.locator('.custom-dropdown-list__overlay, .custom-dropdown-list__dropdown').locator(`text=${country}`).first();
     if (await opt.count()) await opt.click({ force: true });
-    else
-      await p
-        .getByText(country, { exact: false })
-        .first()
-        .click({ force: true })
-        .catch(() => {});
+    else await this.page.getByText(country, { exact: false }).first().click({ force: true }).catch(() => {});
   }
 
-  /**
-   * pickMobileCountryAndFill
-   * ---------------------------------------------------------------------------
-   * Opens the mobile number country dropdown, selects a country,
-   * and fills in a randomly generated 8-digit phone number.
-   *
-   * @param {string} [country='Ireland'] - The country to filter in the mobile selector.
-   * @returns {Promise<string>} The randomly generated phone number digits.
-   */
-  async pickMobileCountryAndFill(country = 'Ireland') {
-    const p = this.page;
+  // Fill all address fields with random test data
+  async fillAddressFields() {
+    const d = JSON.parse(fs.readFileSync('./src/data/data.json', 'utf8'));
+    await this.page.fill('#Input_AddressLine1', this.pick(d.addresses1));
+    await this.page.fill('#Input_AddressLine2', this.pick(d.addresses2));
+    await this.page.fill('#Input_Postcode', this.pick(d.postcodes));
+    await this.page.fill('#Input_City', this.pick(d.cities));
+    await this.page.fill('#Input_State', this.pick(d.states));
+  }
 
-    // Open flag dropdown for selecting country code
-    await p.locator('.phone-number-input__flag').click({ force: true });
-
-    // Type the country into the search input
-    const search = p.locator('[data-testid="MobileNumberSearchInput"]').first();
+  // Select country code and fill random 8-digit phone number
+  async fillMobileNumber(country = 'Ireland') {
+    await this.page.locator('.phone-number-input__flag').click({ force: true });
+    const search = this.page.locator('[data-testid="MobileNumberSearchInput"]').first();
     await search.waitFor({ state: 'visible', timeout: 3000 });
     await search.fill(country);
-    await search.press('Enter').catch(() => {});
-
-    // Generate and fill an 8-digit random phone number
+    await search.press('Enter');
     const digits = String(Math.floor(10000000 + Math.random() * 90000000));
-    await p.locator('[data-testid="MobileNumberInput"]').type(digits);
-
-    return digits;
+    await this.page.locator('[data-testid="MobileNumberInput"]').type(digits);
   }
 
-  /**
-   * clickSave
-   * ---------------------------------------------------------------------------
-   * Clicks the "Save" button and waits for network to become idle.
-   */
+  // Save form and wait for navigation (max 10s)
   async clickSave() {
-    const p = this.page;
-    const btn = p.locator('[data-testid="SaveButton"]').first();
-    if (await btn.count()) {
-      await btn.click({ force: true });
-      await p.waitForLoadState('networkidle').catch(() => {});
-    }
-  }
-
-  /**
-   * fillCompleteDetails
-   * ---------------------------------------------------------------------------
-   * Fills all form fields sequentially using random or data-driven values:
-   *   1. Names, addresses, and postal info (from data.json)
-   *   2. DOB, nationality, residence, and phone
-   *   3. Clicks "Save" to complete the form
-   *
-   * Includes a single ✅ or ❌ log at the end.
-   *
-   * @param {string} [country='Ireland'] - Default country for nationality/residence.
-   */
-  async fillCompleteDetails(country = 'Ireland') {
-    try {
-      const p = this.page;
-
-      // STEP 1: Load data from JSON file
-      const dataPath = path.resolve('./src/data/data.json');
-      const d = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-
-      // STEP 2: Fill name fields with random values from data.json
-      await p.fill('#Input_GivenNames', this.pick(d.givenNames));
-      await p.fill('#Input_Surname', this.pick(d.surnames));
-
-      // STEP 3: Fill date of birth, nationality, and residence
-      await this.fillDateOfBirth();
-      await this.selectNationality(country);
-      await this.selectPermanentResidence(country);
-
-      // STEP 4: Fill address and postal information
-      await p.fill('#Input_AddressLine1', this.pick(d.addresses1));
-      await p.fill('#Input_AddressLine2', this.pick(d.addresses2));
-      await p.fill('#Input_Postcode', this.pick(d.postcodes));
-      await p.fill('#Input_City', this.pick(d.cities));
-      await p.fill('#Input_State', this.pick(d.states));
-
-      // STEP 5: Fill mobile number with randomized digits
-      await this.pickMobileCountryAndFill();
-
-      // STEP 6: Save and wait for network to settle
-      await this.clickSave();
-
-      // STEP 7: Final Success Log
-      console.log('✅ Complete details filled and saved successfully.');
-    } catch (error) {
-      // STEP 7 (Alternative): Final Failure Log
-      console.error('❌ Failed to fill complete details:', error.message);
-    }
+    await this.page.locator('[data-testid="SaveButton"]').click({ force: true });
+    await this.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
   }
 }

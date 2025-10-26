@@ -47,4 +47,41 @@ export default class VerifyProfileSavedToast {
       return false;
     }
   }
+
+  /**
+   * Verifies that the user's name appears on the profile/welcome page
+   * @param {string} firstName - The expected first name to verify
+   * @param {number} timeout - How long to wait (in milliseconds) before giving up. Default: 10 seconds.
+   * @returns {Promise<boolean>} Returns true if name is found; false otherwise.
+   */
+  async verifyUserName(firstName, timeout = 10000) {
+    if (!firstName) {
+      console.warn('⚠️ No firstName provided for verification');
+      return false;
+    }
+
+    try {
+      // Look for text containing "hello" or "Hi" followed by the firstName
+      const nameSelectors = [
+        `text=/hello\\s+${firstName}/i`,
+        `text=/hi\\s+${firstName}/i`,
+        `text=/${firstName}/i`,
+      ];
+
+      for (const selector of nameSelectors) {
+        const nameElement = this.page.locator(selector).first();
+        if (await nameElement.isVisible({ timeout: 2000 }).catch(() => false)) {
+          const text = await nameElement.textContent();
+          console.log(`✅ User name verified on page: "${text.trim()}"`);
+          return true;
+        }
+      }
+
+      console.warn(`⚠️ User name "${firstName}" not found on page`);
+      return false;
+    } catch (error) {
+      console.warn(`⚠️ Failed to verify user name: ${error.message}`);
+      return false;
+    }
+  }
 }

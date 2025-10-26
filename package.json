@@ -1,15 +1,14 @@
 {
   "name": "planet_assignment",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "test:e2e":"playwright test tests/shopperPortal.spec.js --config=C:/Users/Dhruvi/Documents/GitHub/planet_assignment/playwright.config.js"
+    "test:e2e": "playwright test tests/shopperPortalE2E.spec.js",
+    "test:relogin": "playwright test tests/reloginWithSavedEmail.spec.js",
+    "creds:show": "node src/utils/manageCredentials.js show",
+    "creds:clear": "node src/utils/manageCredentials.js clear",
+    "creds:new": "node src/utils/manageCredentials.js new"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "devDependencies": {
     "@playwright/test": "^1.56.1"
   },

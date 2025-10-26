@@ -53,8 +53,10 @@ export default class ConfirmPassportButton {
       }
 
       // STEP 3: After clicking, wait for any network calls or navigation to settle.
-      // This ensures the next step in the test doesn’t start prematurely.
-      await this.page.waitForLoadState('networkidle').catch(() => {});
+      // This ensures the next step in the test doesn't start prematurely.
+      await this.page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {
+        console.warn('⚠️ Network did not settle within 10s, continuing anyway...');
+      });
 
       // STEP 4: Final Success Log
       console.log('✅ Confirm button clicked successfully and page stabilized.');

@@ -240,7 +240,7 @@ ISC
 
 ---
 
-**Author**: Dhruvi  
+**Author**: Zaid Tergaon  
 **Last Updated**: October 26, 2025
 
 # Install dependencies
@@ -253,17 +253,19 @@ npx playwright install
 ### Run Tests
 
 ```bash
-# Full E2E test (headed mode)
-npm run test:e2e:headed
+# Full E2E test (headed mode) default mode
+npm run test:e2e 
 
 # Full E2E test (headless mode)
-npm run test:e2e:headless
-
-# Relogin test (uses saved credentials)
-npx playwright test tests/reloginWithSavedEmail.spec.js --headed
+npm run test:e2e -- -- headless
 
 # Debug mode
-npm run test:e2e:debug
+npm run test:e2e -- --debug
+
+# Relogin test (uses saved credentials)
+npm run test:relogin
+
+
 ```
 
 ##  Project Structure
@@ -313,7 +315,7 @@ npm run creds:new
 npm run creds:clear
 ```
 
-### Saved Credentials Format
+### Saved Credentials Format (Last saved)
 ```json
 {
   "address": "user_1761479934734@tiffincrane.com",
@@ -422,10 +424,6 @@ playwright-report/index.html
 - Credentials stored locally (not in git)
 - NPS popups blocked via CSS injection
 - Fresh OTP guaranteed via message filtering
-
-##  Demo Video
-
-[Watch Full Demo Recording](https://drive.google.com/file/d/16UMQblTDYR6NZTl9iRk14Jd9hSyA-tIf/view?usp=drive_link)
 
 ##  License
 

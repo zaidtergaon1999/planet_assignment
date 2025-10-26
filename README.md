@@ -268,37 +268,6 @@ npm run test:relogin
 
 ```
 
-##  Project Structure
-
-```
-planet_assignment/
- src/
-    data/
-       data.json                    # Test data (names, addresses)
-       mail-credentials.json        # Saved email credentials
-    pages/                           # Page Object Models
-       SubmitEmailPage.js
-       SubmitOtpPage.js
-       TosPage.js
-       PassportButtonPage.js
-       PassportDetailsPage.js
-       ConfirmPassportPage.js
-       CompleteDetailsPage.js
-       VerifyProfileSavedPage.js
-    services/
-       mailTmService.js             # Mail.tm account creation
-       otpService.js                # OTP polling with message filtering
-       credentialManager.js         # Save/load credentials
-    utils/
-        npshandler.js                # NPS popup blocking
- tests/
-    shopperPortalE2E.spec.js         # Full registration flow
-    reloginWithSavedEmail.spec.js    # Relogin verification
- scripts/
-    manageCredentials.js             # CLI credential management
- playwright.config.js
- package.json
-```
 
 ##  Configuration
 
@@ -315,18 +284,6 @@ npm run creds:new
 npm run creds:clear
 ```
 
-### Saved Credentials Format (Last saved)
-```json
-{
-  "address": "user_1761479934734@tiffincrane.com",
-  "password": "P@ssw0rd1761479934734",
-  "token": "eyJ0eXAiOiJKV1Qi...",
-  "createdAt": "2025-10-26T11:58:54.973Z",
-  "userProfile": {
-    "firstName": "Conor"
-  }
-}
-```
 
 ##  Test Workflow
 
